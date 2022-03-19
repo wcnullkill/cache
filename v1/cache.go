@@ -170,7 +170,13 @@ func (c *LRUCache) Del(key string) bool {
 func (c *LRUCache) Exists(key string) bool {
 	c.l.Lock()
 	defer c.l.Unlock()
-	_, ok := c.get(key)
+	val, ok := c.get(key)
+	if ok && !val.alive() {
+		c.elemCount--
+		c.elemSize -= val.size
+		c.del(val)
+		return false
+	}
 	return ok
 }
 func (c *LRUCache) Flush() bool {
