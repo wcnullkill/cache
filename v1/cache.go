@@ -184,6 +184,8 @@ func (c *LRUCache) Flush() bool {
 	defer c.l.Unlock()
 	c.head = nil
 	c.tail = nil
+	c.elemCount = 0
+	c.elemSize = 0
 	return true
 }
 
