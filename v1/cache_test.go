@@ -1,7 +1,9 @@
 package v1
 
 import (
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -10,12 +12,13 @@ func TestNew(t *testing.T) {
 	assert := assert.New(t)
 	cache := NewLRUCache()
 	assert.Equal(cache.maxMemory, LRUDefaultMemory)
-	assert.Equal(cache.elemCount, 0)
-	assert.Equal(cache.elemSize, 0)
+	assert.Equal(0, cache.elemCount)
+	assert.Equal(0, cache.elemSize)
 	assert.Nil(cache.head)
 	assert.Nil(cache.tail)
 }
 
+// 测试设置最大内存
 func TestSetMaxMemory(t *testing.T) {
 	assert := assert.New(t)
 	cache := NewLRUCache()
@@ -50,7 +53,395 @@ func TestSetMaxMemory(t *testing.T) {
 			assert.Panics(fc, v.sizeStr)
 		} else {
 			cache.SetMaxMemory(v.sizeStr)
-			assert.Equal(cache.maxMemory, v.size)
+			assert.Equal(v.size, cache.maxMemory, v.sizeStr)
 		}
 	}
+}
+
+// 测试各种数据类型的Set与Get
+func TestSetGet(t *testing.T) {
+	type user struct {
+		Name string
+		Age  int
+	}
+	assert := assert.New(t)
+	cache := NewLRUCache()
+	table := []struct {
+		key    string
+		val    interface{}
+		expire time.Duration
+	}{
+		{"a", 1, time.Second * 100},
+		{"a1", 2, time.Second * 100},
+		{"a2", 4, time.Second * 100},
+		{"a3", -8, time.Second * 100},
+		{"a4", "16", time.Second * 100},
+		{"a5", "32", time.Second * 100},
+		{"a6", 3.14, time.Second * 100},
+		{"a7", -3.14, time.Second * 100},
+		{"a8", true, time.Second * 100},
+		{"a9", false, time.Second * 100},
+		{"a10", 'a', time.Second * 100},
+		{"a11", '\r', time.Second * 100},
+		{"a12", "啊啊啊", time.Second * 100},
+		{"a13", []int{1, 2, 3}, time.Second * 100},
+		{"a14", []string{"1", "2", "3"}, time.Second * 100},
+		{"a15", map[string]int{"ab": 1, "bed": 2}, time.Second * 100},
+		{"a16", map[string]string{"ab": "aaaa", "bed": "asdff"}, time.Second * 100},
+		{"a17", user{"wc", 88}, time.Second * 100},
+		{"a18", &user{"wc", 88}, time.Second * 100},
+	}
+	for _, v := range table {
+		cache.Set(v.key, v.val, v.expire)
+	}
+	for _, v := range table {
+		val, ok := cache.Get(v.key)
+		assert.Equal(v.val, val, v.key)
+		assert.True(ok)
+	}
+}
+
+// 测试Exists
+func TestSetExists(t *testing.T) {
+	type user struct {
+		Name string
+		Age  int
+	}
+	assert := assert.New(t)
+	cache := NewLRUCache()
+	table := []struct {
+		key    string
+		val    interface{}
+		expire time.Duration
+	}{
+		{"a", 1, time.Second * 100},
+		{"a1", 2, time.Second * 100},
+		{"a2", 4, time.Second * 100},
+		{"a3", -8, time.Second * 100},
+		{"a4", "16", time.Second * 100},
+		{"a5", "32", time.Second * 100},
+		{"a6", 3.14, time.Second * 100},
+		{"a7", -3.14, time.Second * 100},
+		{"a8", true, time.Second * 100},
+		{"a9", false, time.Second * 100},
+		{"a10", 'a', time.Second * 100},
+		{"a11", '\r', time.Second * 100},
+		{"a12", "啊啊啊", time.Second * 100},
+		{"a13", []int{1, 2, 3}, time.Second * 100},
+		{"a14", []string{"1", "2", "3"}, time.Second * 100},
+		{"a15", map[string]int{"ab": 1, "bed": 2}, time.Second * 100},
+		{"a16", map[string]string{"ab": "aaaa", "bed": "asdff"}, time.Second * 100},
+		{"a17", user{"wc", 88}, time.Second * 100},
+		{"a18", &user{"wc", 88}, time.Second * 100},
+	}
+	for _, v := range table {
+		cache.Set(v.key, v.val, v.expire)
+	}
+	for _, v := range table {
+		ok := cache.Exists(v.key)
+		assert.True(ok)
+	}
+}
+
+// 测试重复Set，值将被覆盖
+func TestSet(t *testing.T) {
+	assert := assert.New(t)
+	cache := NewLRUCache()
+	table := []struct {
+		key    string
+		val    interface{}
+		actual interface{}
+	}{
+		{"a", 1, 1},
+		{"a", 1, 1},
+		{"a", 2, 2},
+		{"a", 3, 3},
+	}
+	for _, v := range table {
+		cache.Set(v.key, v.val, 0)
+		val, ok := cache.Get(v.key)
+		assert.True(ok)
+		assert.Equal(v.actual, val)
+	}
+}
+
+// 测试超过最大内存时
+func TestSetOutofMaxMemory(t *testing.T) {
+	assert := assert.New(t)
+	cache := NewLRUCache()
+	cache.SetMaxMemory("32KB")
+	count := 1 << 10
+	// key算16byte
+	// 目前val算16byte
+	for i := 0; i < count; i++ {
+		key := strconv.Itoa(i + 1)
+		cache.Set(key, i+1, 0)
+	}
+	assert.Equal(32*count, cache.elemSize)
+	assert.Equal(int64(count), cache.Keys())
+	for i := 0; i < count; i++ {
+		key := strconv.Itoa(i + 1 + count)
+		cache.Set(key, i+1+count, 0)
+		keys := cache.Keys()
+		assert.Equal(int64(count), keys)
+		key = strconv.Itoa(i + 1)
+		ok := cache.Exists(key)
+		assert.False(ok)
+	}
+}
+
+// 测试Expire和Exists
+func TestExpireExists(t *testing.T) {
+	assert := assert.New(t)
+	cache := NewLRUCache()
+	table := []struct {
+		key    string
+		val    interface{}
+		expire time.Duration
+		exists bool
+	}{
+		{"a", 1, time.Second * 1, false},
+		{"a1", 2, time.Second * 10, true},
+		{"a3", -8, time.Second * 0, true},
+	}
+	for _, v := range table {
+		cache.Set(v.key, v.val, v.expire)
+	}
+	time.Sleep(time.Second * 3)
+	for _, v := range table {
+		ok := cache.Exists(v.key)
+		assert.Equal(v.exists, ok, v.key)
+	}
+}
+
+// 测试Expire和Get
+func TestExpireGet(t *testing.T) {
+	assert := assert.New(t)
+	cache := NewLRUCache()
+	table := []struct {
+		key    string
+		val    interface{}
+		expire time.Duration
+		exists bool
+		actual interface{}
+	}{
+		{"a", 1, time.Second * 1, false, 0},
+		{"a1", 2, time.Second * 10, true, 2},
+		{"a3", -8, time.Second * 0, true, -8},
+	}
+	for _, v := range table {
+		cache.Set(v.key, v.val, v.expire)
+	}
+	time.Sleep(time.Second * 3)
+	for _, v := range table {
+		val, ok := cache.Get(v.key)
+		assert.Equal(v.exists, ok, v.key)
+		if ok {
+			assert.Equal(v.actual, val, v.key)
+		}
+	}
+}
+
+// 测试Expire和Keys
+func TestExpireKeys(t *testing.T) {
+	assert := assert.New(t)
+	cache := NewLRUCache()
+	table := []struct {
+		key    string
+		val    interface{}
+		expire time.Duration
+		exists bool
+	}{
+		{"a", 1, time.Second * 1, false},
+		{"a1", 2, time.Second * 3, true},
+		{"a3", -8, time.Second * 0, true},
+	}
+	for _, v := range table {
+		cache.Set(v.key, v.val, v.expire)
+	}
+	keys := cache.Keys()
+	assert.Equal(int64(3), keys)
+	time.Sleep(time.Second * 2)
+	keys = cache.Keys()
+	assert.Equal(int64(2), keys)
+	time.Sleep(time.Second * 2)
+	keys = cache.Keys()
+	assert.Equal(int64(1), keys)
+}
+
+// 测试从链表尾删除
+func TestDel1(t *testing.T) {
+	type user struct {
+		Name string
+		Age  int
+	}
+	assert := assert.New(t)
+	cache := NewLRUCache()
+	table := []struct {
+		key    string
+		val    interface{}
+		expire time.Duration
+	}{
+		{"a", 1, time.Second * 100},
+		{"a1", 2, time.Second * 100},
+		{"a2", 4, time.Second * 100},
+		{"a3", -8, time.Second * 100},
+		{"a4", "16", time.Second * 100},
+		{"a5", "32", time.Second * 100},
+		{"a6", 3.14, time.Second * 100},
+		{"a7", -3.14, time.Second * 100},
+		{"a8", true, time.Second * 100},
+		{"a9", false, time.Second * 100},
+		{"a10", 'a', time.Second * 100},
+		{"a11", '\r', time.Second * 100},
+		{"a12", "啊啊啊", time.Second * 100},
+		{"a13", []int{1, 2, 3}, time.Second * 100},
+		{"a14", []string{"1", "2", "3"}, time.Second * 100},
+		{"a15", map[string]int{"ab": 1, "bed": 2}, time.Second * 100},
+		{"a16", map[string]string{"ab": "aaaa", "bed": "asdff"}, time.Second * 100},
+		{"a17", user{"wc", 88}, time.Second * 100},
+		{"a18", &user{"wc", 88}, time.Second * 100},
+	}
+	for _, v := range table {
+		cache.Set(v.key, v.val, v.expire)
+	}
+	count := int64(len(table))
+	assert.Equal(cache.Keys(), count)
+	for _, v := range table {
+		ok := cache.Del(v.key)
+		count--
+		assert.True(ok, v.key)
+		ok = cache.Exists(v.key)
+		assert.False(ok, v.key)
+		keys := cache.Keys()
+		assert.Equal(count, keys)
+	}
+}
+
+// 测试从链表头删除
+func TestDel2(t *testing.T) {
+	type user struct {
+		Name string
+		Age  int
+	}
+	assert := assert.New(t)
+	cache := NewLRUCache()
+	table := []struct {
+		key    string
+		val    interface{}
+		expire time.Duration
+	}{
+		{"a", 1, time.Second * 100},
+		{"a1", 2, time.Second * 100},
+		{"a2", 4, time.Second * 100},
+		{"a3", -8, time.Second * 100},
+		{"a4", "16", time.Second * 100},
+		{"a5", "32", time.Second * 100},
+		{"a6", 3.14, time.Second * 100},
+		{"a7", -3.14, time.Second * 100},
+		{"a8", true, time.Second * 100},
+		{"a9", false, time.Second * 100},
+		{"a10", 'a', time.Second * 100},
+		{"a11", '\r', time.Second * 100},
+		{"a12", "啊啊啊", time.Second * 100},
+		{"a13", []int{1, 2, 3}, time.Second * 100},
+		{"a14", []string{"1", "2", "3"}, time.Second * 100},
+		{"a15", map[string]int{"ab": 1, "bed": 2}, time.Second * 100},
+		{"a16", map[string]string{"ab": "aaaa", "bed": "asdff"}, time.Second * 100},
+		{"a17", user{"wc", 88}, time.Second * 100},
+		{"a18", &user{"wc", 88}, time.Second * 100},
+	}
+	for _, v := range table {
+		cache.Set(v.key, v.val, v.expire)
+	}
+	count := int64(len(table))
+	assert.Equal(cache.Keys(), count)
+	for i := range table {
+		ok := cache.Del(table[len(table)-i-1].key)
+		count--
+		assert.True(ok, table[len(table)-i-1].key)
+		ok = cache.Exists(table[len(table)-i-1].key)
+		assert.False(ok, table[len(table)-i-1].key)
+		keys := cache.Keys()
+		assert.Equal(count, keys)
+	}
+	assert.Equal(int64(0), cache.Keys())
+}
+
+// 测试随机Del
+func TestDel3(t *testing.T) {
+	type user struct {
+		Name string
+		Age  int
+	}
+	assert := assert.New(t)
+	cache := NewLRUCache()
+	table := []struct {
+		key    string
+		val    interface{}
+		expire time.Duration
+	}{
+		{"a", 1, time.Second * 100},
+		{"a1", 2, time.Second * 100},
+		{"a2", 4, time.Second * 100},
+		{"a3", -8, time.Second * 100},
+		{"a4", "16", time.Second * 100},
+		{"a5", "32", time.Second * 100},
+		{"a6", 3.14, time.Second * 100},
+		{"a7", -3.14, time.Second * 100},
+		{"a8", true, time.Second * 100},
+		{"a9", false, time.Second * 100},
+		{"a10", 'a', time.Second * 100},
+		{"a11", '\r', time.Second * 100},
+		{"a12", "啊啊啊", time.Second * 100},
+		{"a13", []int{1, 2, 3}, time.Second * 100},
+		{"a14", []string{"1", "2", "3"}, time.Second * 100},
+		{"a15", map[string]int{"ab": 1, "bed": 2}, time.Second * 100},
+		{"a16", map[string]string{"ab": "aaaa", "bed": "asdff"}, time.Second * 100},
+		{"a17", user{"wc", 88}, time.Second * 100},
+		{"a18", &user{"wc", 88}, time.Second * 100},
+	}
+	// 随机100次
+	for i := 0; i < 100; i++ {
+		m := make(map[string]struct{}, len(table))
+		for _, v := range table {
+			cache.Set(v.key, v.val, v.expire)
+			m[v.key] = struct{}{}
+		}
+		count := int64(len(table))
+		assert.Equal(cache.Keys(), count)
+		for k := range m {
+			ok := cache.Del(k)
+			count--
+			assert.True(ok, k)
+			ok = cache.Exists(k)
+			assert.False(ok, k)
+			keys := cache.Keys()
+			assert.Equal(count, keys)
+		}
+		assert.Equal(int64(0), cache.Keys())
+	}
+}
+
+func TestFlush(t *testing.T) {
+	assert := assert.New(t)
+	cache := NewLRUCache()
+	table := []struct {
+		key string
+		val interface{}
+	}{
+		{"a1", 1},
+		{"a2", 2},
+		{"a3", 3},
+	}
+	for _, v := range table {
+		cache.Set(v.key, v.val, 0)
+	}
+	assert.Equal(int64(len(table)), cache.Keys())
+	cache.Flush()
+	assert.Equal(int64(0), cache.Keys())
+	assert.Equal(0, cache.elemSize)
+	assert.Equal(0, cache.elemCount)
+	assert.Nil(cache.head)
+	assert.Nil(cache.tail)
 }
