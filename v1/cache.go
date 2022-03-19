@@ -192,6 +192,18 @@ func (c *LRUCache) Flush() bool {
 func (c *LRUCache) Keys() int64 {
 	c.l.Lock()
 	defer c.l.Unlock()
+	// 可能有过期元素，需要遍历一次
+	var next *elem
+	node := c.head
+	for node != nil {
+		next = node.next
+		if !node.alive() {
+			c.elemCount--
+			c.elemSize -= node.size
+			c.del(node)
+		}
+		node = next
+	}
 	return int64(c.elemCount)
 }
 
@@ -220,9 +232,11 @@ func (c *LRUCache) del(e *elem) {
 		c.tail = nil
 	} else if e.next == nil { // e是最后一个元素
 		prev := e.prev
+		prev.next = nil
 		c.tail = prev
 	} else if e.prev == nil { // e是第一个元素
 		next := e.next
+		next.prev = nil
 		c.head = next
 	} else {
 		prev := e.prev
