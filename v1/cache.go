@@ -67,7 +67,19 @@ func getMemorySize(size string) (int, error) {
 	}
 	return mem, nil
 }
+
+// 由于类型都同意转换为interface{}，这里固定返回16byte
 func sizeof(c interface{}) int {
+	//
+	// unsafe.Sizeof()返回的值介绍
+	//
+	// string类型，固定24byte
+	// 数值类型，如int64等，与真实内存大小一致
+	// struct值类型，与其内部元素有关
+	// struct引用类型，固定8byte
+	// map类型，实际上也是引用类型，固定8byte
+	// 数组类型，与T具体类型和长度有关
+	// slice类型，固定24byte
 	return int(unsafe.Sizeof(c))
 }
 
