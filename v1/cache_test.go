@@ -445,3 +445,69 @@ func TestFlush(t *testing.T) {
 	assert.Nil(cache.head)
 	assert.Nil(cache.tail)
 }
+func BenchmarkSet(b *testing.B) {
+	cache := NewLRUCache()
+	cache.SetMaxMemory("1GB")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cache.Set(strconv.Itoa(i), i, 0)
+	}
+
+}
+
+func BenchmarkSetWhenKB(b *testing.B) {
+	cache := NewLRUCache()
+	cache.SetMaxMemory("1GB")
+	for i := 0; i < 1<<10; i++ {
+		cache.Set("a"+strconv.Itoa(i), i, 0)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cache.Set(strconv.Itoa(i), i, 0)
+	}
+
+}
+func BenchmarkGet(b *testing.B) {
+	cache := NewLRUCache()
+	cache.SetMaxMemory("1GB")
+	for i := 0; i < b.N; i++ {
+		cache.Set(strconv.Itoa(i), i, 0)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cache.Get(strconv.Itoa(i))
+	}
+}
+func BenchmarkDel(b *testing.B) {
+	cache := NewLRUCache()
+	cache.SetMaxMemory("1GB")
+	for i := 0; i < b.N; i++ {
+		cache.Set(strconv.Itoa(i), i, 0)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cache.Del(strconv.Itoa(i))
+	}
+}
+func BenchmarkExists(b *testing.B) {
+	cache := NewLRUCache()
+	cache.SetMaxMemory("1GB")
+	for i := 0; i < b.N; i++ {
+		cache.Set(strconv.Itoa(i), i, 0)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cache.Exists(strconv.Itoa(i))
+	}
+}
+func BenchmarkKeys(b *testing.B) {
+	cache := NewLRUCache()
+	cache.SetMaxMemory("1GB")
+	for i := 0; i < b.N; i++ {
+		cache.Set(strconv.Itoa(i), i, 0)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cache.Keys()
+	}
+}
