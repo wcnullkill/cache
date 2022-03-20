@@ -9,15 +9,18 @@
 - 目前Get，Set，Del，Exists都是O(1),Keys是O(n)，但是内存占用比上一版高出一倍
 - Set中，当超过了maxMemory时，只使用rpop这种方式，可能会弹出有效的元素，但是数据库中还保留无效过期的垃圾元素
 #### 基准测试
+基准测试主要用于横向对比
 ```
 goos: darwin
 goarch: amd64
 pkg: cache/v2
 cpu: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
-BenchmarkSet-12          	 2005204	       615.6 ns/op	     219 B/op	       3 allocs/op
-BenchmarkSetWhenKB-12    	 2332693	       536.0 ns/op	     202 B/op	       3 allocs/op
-BenchmarkGet-12          	 3285552	       428.4 ns/op	       7 B/op	       0 allocs/op
-BenchmarkDel-12          	 5447834	       249.8 ns/op	       7 B/op	       0 allocs/op
-BenchmarkExists-12       	 4100938	       320.3 ns/op	       7 B/op	       0 allocs/op
-BenchmarkKeys-12         	   10000	   1044037 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSetKB-12             	 4989520	       228.4 ns/op	      98 B/op	       3 allocs/op
+BenchmarkSetMB-12             	 4245046	       284.6 ns/op	      98 B/op	       3 allocs/op
+BenchmarkSetGB-12             	 2115027	       585.6 ns/op	     213 B/op	       3 allocs/op
+BenchmarkSetOutofMemory-12    	 4237939	       293.9 ns/op	      99 B/op	       3 allocs/op
+BenchmarkGet-12               	 4916308	       253.0 ns/op	       7 B/op	       0 allocs/op
+BenchmarkDel-12               	24701490	        42.81 ns/op	       7 B/op	       0 allocs/op
+BenchmarkExists-12            	23714551	        53.66 ns/op	       7 B/op	       0 allocs/op
+BenchmarkKeys-12              	   13317	     90040 ns/op	       0 B/op	       0 allocs/op
 ```

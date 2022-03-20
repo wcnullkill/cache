@@ -445,7 +445,25 @@ func TestFlush(t *testing.T) {
 	assert.Nil(cache.head)
 	assert.Nil(cache.tail)
 }
-func BenchmarkSet(b *testing.B) {
+func BenchmarkSetKB(b *testing.B) {
+	cache := NewLRUCache()
+	cache.SetMaxMemory("1KB")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cache.Set(strconv.Itoa(i), i, 0)
+	}
+
+}
+func BenchmarkSetMB(b *testing.B) {
+	cache := NewLRUCache()
+	cache.SetMaxMemory("1MB")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cache.Set(strconv.Itoa(i), i, 0)
+	}
+
+}
+func BenchmarkSetGB(b *testing.B) {
 	cache := NewLRUCache()
 	cache.SetMaxMemory("1GB")
 	b.ResetTimer()
@@ -454,22 +472,20 @@ func BenchmarkSet(b *testing.B) {
 	}
 
 }
-
-func BenchmarkSetWhenKB(b *testing.B) {
+func BenchmarkSetOutofMemory(b *testing.B) {
 	cache := NewLRUCache()
-	cache.SetMaxMemory("1GB")
-	for i := 0; i < 1<<10; i++ {
-		cache.Set("a"+strconv.Itoa(i), i, 0)
+	cache.SetMaxMemory("320KB")
+	for i := 0; i < 10<<10; i++ {
+		cache.Set(strconv.Itoa(i), i, 0)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		cache.Set(strconv.Itoa(i), i, 0)
 	}
-
 }
 func BenchmarkGet(b *testing.B) {
 	cache := NewLRUCache()
-	cache.SetMaxMemory("1GB")
+	cache.SetMaxMemory("10MB")
 	for i := 0; i < b.N; i++ {
 		cache.Set(strconv.Itoa(i), i, 0)
 	}
@@ -480,8 +496,8 @@ func BenchmarkGet(b *testing.B) {
 }
 func BenchmarkDel(b *testing.B) {
 	cache := NewLRUCache()
-	cache.SetMaxMemory("1GB")
-	for i := 0; i < b.N; i++ {
+	cache.SetMaxMemory("10MB")
+	for i := 0; i < 1<<10; i++ {
 		cache.Set(strconv.Itoa(i), i, 0)
 	}
 	b.ResetTimer()
@@ -491,8 +507,8 @@ func BenchmarkDel(b *testing.B) {
 }
 func BenchmarkExists(b *testing.B) {
 	cache := NewLRUCache()
-	cache.SetMaxMemory("1GB")
-	for i := 0; i < b.N; i++ {
+	cache.SetMaxMemory("10MB")
+	for i := 0; i < 1<<10; i++ {
 		cache.Set(strconv.Itoa(i), i, 0)
 	}
 	b.ResetTimer()
@@ -502,8 +518,8 @@ func BenchmarkExists(b *testing.B) {
 }
 func BenchmarkKeys(b *testing.B) {
 	cache := NewLRUCache()
-	cache.SetMaxMemory("1GB")
-	for i := 0; i < b.N; i++ {
+	cache.SetMaxMemory("10MB")
+	for i := 0; i < 1<<10; i++ {
 		cache.Set(strconv.Itoa(i), i, 0)
 	}
 	b.ResetTimer()

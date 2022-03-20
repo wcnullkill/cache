@@ -9,17 +9,20 @@
 
 
 #### 基准测试
+基准测试主要用于横向对比
 ```
 goos: darwin
 goarch: amd64
 pkg: cache/v1
 cpu: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
-BenchmarkSet-12          	   56389	    127561 ns/op	      95 B/op	       2 allocs/op
-BenchmarkSetWhenKB-12    	   47462	    110733 ns/op	      95 B/op	       2 allocs/op
-BenchmarkGet-12          	   26947	    111419 ns/op	       4 B/op	       0 allocs/op
-BenchmarkDel-12          	   54756	    124129 ns/op	       5 B/op	       0 allocs/op
-BenchmarkExists-12       	   44218	     90732 ns/op	       5 B/op	       0 allocs/op
-BenchmarkKeys-12         	   10000	    740076 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSetKB-12             	 4703823	       252.2 ns/op	      96 B/op	       2 allocs/op
+BenchmarkSetMB-12             	   53576	     98611 ns/op	      95 B/op	       2 allocs/op
+BenchmarkSetGB-12             	   56648	    117430 ns/op	      95 B/op	       2 allocs/op
+BenchmarkSetOutofMemory-12    	   27975	     42062 ns/op	      95 B/op	       2 allocs/op
+BenchmarkGet-12               	   27194	    110498 ns/op	       4 B/op	       0 allocs/op
+BenchmarkDel-12               	29181471	        43.07 ns/op	       7 B/op	       0 allocs/op
+BenchmarkExists-12            	  475306	      2549 ns/op	       7 B/op	       0 allocs/op
+BenchmarkKeys-12              	   16089	     76908 ns/op	       0 B/op	       0 allocs/op
 ```
 #### 笔记
 1. interface{}，可能会引起内存逃逸，因为其结构如下，固定占用16byte
