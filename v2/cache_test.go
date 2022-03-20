@@ -453,6 +453,7 @@ func BenchmarkSetKB(b *testing.B) {
 		cache.Set(strconv.Itoa(i), i, 0)
 	}
 
+	cache.Flush()
 }
 func BenchmarkSetMB(b *testing.B) {
 	cache := NewLRUCache()
@@ -461,6 +462,7 @@ func BenchmarkSetMB(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		cache.Set(strconv.Itoa(i), i, 0)
 	}
+	cache.Flush()
 
 }
 func BenchmarkSetGB(b *testing.B) {
@@ -471,6 +473,7 @@ func BenchmarkSetGB(b *testing.B) {
 		cache.Set(strconv.Itoa(i), i, 0)
 	}
 
+	cache.Flush()
 }
 func BenchmarkSetOutofMemory(b *testing.B) {
 	cache := NewLRUCache()
@@ -482,6 +485,7 @@ func BenchmarkSetOutofMemory(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		cache.Set(strconv.Itoa(i), i, 0)
 	}
+	cache.Flush()
 }
 func BenchmarkGet(b *testing.B) {
 	cache := NewLRUCache()
@@ -493,6 +497,7 @@ func BenchmarkGet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		cache.Get(strconv.Itoa(i))
 	}
+	cache.Flush()
 }
 func BenchmarkDel(b *testing.B) {
 	cache := NewLRUCache()
@@ -504,6 +509,7 @@ func BenchmarkDel(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		cache.Del(strconv.Itoa(i))
 	}
+	cache.Flush()
 }
 func BenchmarkExists(b *testing.B) {
 	cache := NewLRUCache()
@@ -515,6 +521,7 @@ func BenchmarkExists(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		cache.Exists(strconv.Itoa(i))
 	}
+	cache.Flush()
 }
 func BenchmarkKeys(b *testing.B) {
 	cache := NewLRUCache()
@@ -526,4 +533,5 @@ func BenchmarkKeys(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		cache.Keys()
 	}
+	cache.Flush()
 }
