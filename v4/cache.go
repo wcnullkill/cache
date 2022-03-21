@@ -109,7 +109,7 @@ type lruCache struct {
 	maxMemory int //最大内存大小
 	head      *elem
 	tail      *elem
-	l         sync.Mutex
+	l         sync.RWMutex
 	// 使用map存储key val，提高查询效率
 	m        map[string]*elem
 	gcState  int64 //是否处于gc状态
@@ -120,7 +120,7 @@ type lruCache struct {
 func NewLRUCache() *lruCache {
 	cache := &lruCache{
 		maxMemory: LRUDefaultMemory,
-		l:         sync.Mutex{},
+		l:         sync.RWMutex{},
 		m:         make(map[string]*elem),
 		gcTime:    time.Now().UnixNano(),
 		gcPeriod:  int64(DefaultAutoGCPeriod),
@@ -186,22 +186,18 @@ func (c *lruCache) Set(key string, val interface{}, expire time.Duration) {
 	c.elemSize += v1.size
 }
 
+// get部分使用读锁,movieToHead部分使用写锁
 func (c *lruCache) Get(key string) (interface{}, bool) {
-	c.l.Lock()
-	defer c.l.Unlock()
+	c.l.RLock()
 	val, ok := c.get(key)
-	if !ok {
+	if !ok || !val.alive() {
+		c.l.RUnlock()
 		return nil, false
 	}
-	if !val.alive() { // 过了有效期，删除并返回不存在
-		c.elemCount--
-		c.elemSize -= val.size
-		c.del(val)
-		val.reset()
-		elemPool.Put(val)
-		return nil, false
-	}
+	c.l.RUnlock()
+	c.l.Lock()
 	c.moveToHead(val)
+	c.l.Unlock()
 	return val.val, true
 }
 func (c *lruCache) Del(key string) bool {
@@ -220,15 +216,10 @@ func (c *lruCache) Del(key string) bool {
 }
 
 func (c *lruCache) Exists(key string) bool {
-	c.l.Lock()
-	defer c.l.Unlock()
+	c.l.RLock()
+	defer c.l.RUnlock()
 	val, ok := c.get(key)
 	if ok && !val.alive() {
-		c.elemCount--
-		c.elemSize -= val.size
-		c.del(val)
-		val.reset()
-		elemPool.Put(val)
 		return false
 	}
 	return ok
@@ -251,8 +242,8 @@ func (c *lruCache) Flush() bool {
 }
 
 func (c *lruCache) Keys() int64 {
-	c.l.Lock()
-	defer c.l.Unlock()
+	c.l.RLock()
+	defer c.l.RUnlock()
 	return int64(c.elemCount)
 }
 

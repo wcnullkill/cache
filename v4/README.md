@@ -10,6 +10,7 @@
 - 当调用Set，优先触发gc，如果内存使用率依然是1，再rpop弹出元素
 - 定时刷新gc的线程，上锁，避免gc过程中，由Set再次触发gc
 - 引入sync.Pool，复用elem对象，降低对象分配与垃圾回收，效果比较显著
+- 使用sync.RWMutex，替代sync.Mutex，在Exists上使用读锁，在Get上get过程中，使用读锁，removeToHead使用写锁，提高查询效率
 
 
 #### 目前发现的问题
@@ -28,12 +29,12 @@ goos: darwin
 goarch: amd64
 pkg: cache/v4
 cpu: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
-BenchmarkSetKB-12             	 4252358	       286.2 ns/op	      18 B/op	       2 allocs/op
-BenchmarkSetMB-12             	 3714596	       365.1 ns/op	      18 B/op	       2 allocs/op
-BenchmarkSetGB-12             	 1496504	       694.4 ns/op	     157 B/op	       2 allocs/op
-BenchmarkSetOutofMemory-12    	 3719701	       313.4 ns/op	      19 B/op	       2 allocs/op
-BenchmarkGet-12               	 4638534	       277.5 ns/op	       9 B/op	       0 allocs/op
-BenchmarkDel-12               	27660736	        43.21 ns/op	       7 B/op	       0 allocs/op
-BenchmarkExists-12            	24033320	        59.31 ns/op	       7 B/op	       0 allocs/op
-BenchmarkKeys-12              	85832187	        13.67 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSetKB-12             	 4199202	       281.9 ns/op	      18 B/op	       2 allocs/op
+BenchmarkSetMB-12             	 3520803	       378.4 ns/op	      18 B/op	       2 allocs/op
+BenchmarkSetGB-12             	 1499502	       762.1 ns/op	     157 B/op	       2 allocs/op
+BenchmarkSetOutofMemory-12    	 3716142	       323.0 ns/op	      19 B/op	       2 allocs/op
+BenchmarkGet-12               	 4384556	       302.7 ns/op	       9 B/op	       0 allocs/op
+BenchmarkDel-12               	21145279	        54.32 ns/op	       7 B/op	       0 allocs/op
+BenchmarkExists-12            	24103143	        52.43 ns/op	       7 B/op	       0 allocs/op
+BenchmarkKeys-12              	87919623	        13.70 ns/op	       0 B/op	       0 allocs/op
 ```
