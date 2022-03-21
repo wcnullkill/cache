@@ -20,6 +20,7 @@ const (
 	LRUDefaultMemory    = 100 << 20 // 100MB
 	DefaultMapElem      = 100
 	DefaultAutoGCPeriod = time.Second * 120
+	MinGCPeriod         = time.Second * 10 // 最小gc间隔
 )
 
 var (
@@ -304,15 +305,16 @@ func (c *lruCache) rpop() *elem {
 }
 
 // 回收过期元素
-// 触发条件
+// 触发条件,必须同时满足
 //		1. 当前gcState==0
-//		2. 离上一次gc过了gcPeriod秒
-//		3. cache内存使用率>3/4
+//		2. gc间隔>最小gc间隔
+//		3. gc间隔过了gcPeriod秒,或者cache内存使用率>3/4
 // 触发时机
 //		1. cache创建后，自启动一个goroutine定时调用
 //		2. 调用Set时，如果内存使用率达到1
 func (c *lruCache) gc() {
-	if time.Now().UnixNano()-c.gcTime > int64(c.gcPeriod) && c.elemSize > c.maxMemory*3/4 && atomic.CompareAndSwapInt64(&c.gcState, 0, 1) {
+	if c.testgc() && atomic.CompareAndSwapInt64(&c.gcState, 0, 1) {
+		c.gcTime = time.Now().UnixNano()
 		for _, v := range c.m {
 			if !v.alive() {
 				c.elemCount--
@@ -320,9 +322,14 @@ func (c *lruCache) gc() {
 				c.del(v)
 			}
 		}
-		c.gcTime = time.Now().UnixNano()
 		atomic.StoreInt64(&c.gcState, 0)
 	}
+}
+func (c *lruCache) testgc() bool {
+	state := atomic.LoadInt64(&c.gcState)
+	interval := time.Now().UnixNano() - c.gcTime
+	result := state == 0 && interval > int64(MinGCPeriod) && (interval > int64(c.gcPeriod) || c.elemSize > c.maxMemory*3/4)
+	return result
 }
 
 type elem struct {

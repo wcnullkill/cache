@@ -1,9 +1,9 @@
 #### 设计
 - 本次缓存设计参考LRU，使用的是双链表+头尾指针+哈希表实现
-- 使用NewLRUCache时，自动开启后台线程，定时触发gc，当同时满足以下条件时，执行回收
+- 使用NewLRUCache时，自动开启后台线程，定时触发gc，当同时满足以下条件时
 	1. 当前gcState==0
-	2. 离上一次gc过了gcPeriod秒
-	3. cache内存使用率>3/4
+	2. gc间隔>最小gc间隔
+	3. gc间隔过了gcPeriod秒,或者cache内存使用率>3/4
 - 本版本中Keys()直接返回elemSize，可能包含过期失效的
 - 目前Get，Set，Del，Exists，Keys都是O(1)
 - 内存实际占用，约为原本数据的两倍
@@ -26,12 +26,12 @@ goos: darwin
 goarch: amd64
 pkg: cache/v3
 cpu: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
-BenchmarkSetKB-12             	 3881370	       321.3 ns/op	      98 B/op	       3 allocs/op
-BenchmarkSetMB-12             	 3118718	       415.4 ns/op	      97 B/op	       3 allocs/op
-BenchmarkSetGB-12             	 1984275	       678.4 ns/op	     220 B/op	       3 allocs/op
-BenchmarkSetOutofMemory-12    	 3397266	       380.4 ns/op	      99 B/op	       3 allocs/op
-BenchmarkGet-12               	 4739529	       260.4 ns/op	       7 B/op	       0 allocs/op
-BenchmarkDel-12               	29588482	        45.69 ns/op	       7 B/op	       0 allocs/op
-BenchmarkExists-12            	20917980	        52.65 ns/op	       7 B/op	       0 allocs/op
-BenchmarkKeys-12              	90007804	        13.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSetKB-12             	 3834207	       305.9 ns/op	      98 B/op	       3 allocs/op
+BenchmarkSetMB-12             	 3360806	       378.8 ns/op	      98 B/op	       3 allocs/op
+BenchmarkSetGB-12             	 2175087	       574.3 ns/op	     209 B/op	       3 allocs/op
+BenchmarkSetOutofMemory-12    	 3364515	       356.2 ns/op	      99 B/op	       3 allocs/op
+BenchmarkGet-12               	 5133748	       250.8 ns/op	       7 B/op	       0 allocs/op
+BenchmarkDel-12               	25219101	        44.18 ns/op	       7 B/op	       0 allocs/op
+BenchmarkExists-12            	23611804	        53.70 ns/op	       7 B/op	       0 allocs/op
+BenchmarkKeys-12              	87736422	        13.77 ns/op	       0 B/op	       0 allocs/op
 ```

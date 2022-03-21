@@ -579,7 +579,6 @@ func BenchmarkSetOutofMemory(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		cache.Set(strconv.Itoa(i), i, 0)
 	}
-	cache.Flush()
 }
 func BenchmarkGet(b *testing.B) {
 	cache := NewLRUCache()
