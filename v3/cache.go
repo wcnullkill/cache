@@ -20,7 +20,7 @@ const (
 	LRUDefaultMemory    = 100 << 20 // 100MB
 	DefaultMapElem      = 100
 	DefaultAutoGCPeriod = time.Second * 120
-	MinGCPeriod         = time.Second * 10 // 最小gc间隔
+	MinGCPeriod         = time.Second * 1 // 最小gc间隔
 )
 
 var (
@@ -329,6 +329,7 @@ func (c *lruCache) testgc() bool {
 	state := atomic.LoadInt64(&c.gcState)
 	interval := time.Now().UnixNano() - c.gcTime
 	result := state == 0 && interval > int64(MinGCPeriod) && (interval > int64(c.gcPeriod) || c.elemSize > c.maxMemory*3/4)
+
 	return result
 }
 
